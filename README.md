@@ -1,0 +1,2 @@
+# oajax.js
+oajax.js is offline based http/https request handler which can handle the http request whether server is offline or online .when server is not available or offline its maintain state of request using local data storage of browser and when server is online its automatically sync the locally maintained request states with server . oajax also give support of get or post data when server is not available so that's why it is very useful tool for js based mobile application development platform like Phonegap (cordova) where local data handling is big challenge 
