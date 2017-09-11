@@ -1,0 +1,30 @@
+{
+  "name": "oajax.js",
+  "authors": [
+    "(Ch Asghar Ali <ch.asghar.ali.071@gmail.com>)"
+  ],
+  "description": "oajax.js is offline based http/https request handler which can handle the http request whether server is offline or online .when server is not available or offline its maintain state of request using local data storage of browser and when server is online its automatically sync the locally maintained request states with server . oajax also give support of get or post data when server is not available so that's why it is very useful tool for js based mobile application development platform like Phonegap (cordova) where local data handling is big challenge",
+  "main": "dist/oajax.js",
+  "keywords": [
+    "offline",
+    "database",
+    "realm",
+    "sqllite",
+    "oajax",
+    "oajax.js",
+    "auto",
+    "sync",
+    "offline",
+    "database",
+    "local",
+    "webstorage",
+    "phonegap local database",
+    "cordova local database"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/chasgharali/oajax.js",
+  "private": false,
+  "dependencies": {
+    "jquery": "^3.2.1"
+  }
+}

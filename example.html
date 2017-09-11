@@ -1,0 +1,47 @@
+<html>
+	<head>
+	<script src="bower_components/jquery/dist/jquery.min.js"></script>
+	<script src="bower_components/oajax.js/dist/oajax.min.js"></script>
+	</head>
+<body>
+	<textarea id="data"></textarea>
+
+</body>
+</html>
+
+ 
+ <script type="text/javascript">
+         getData();
+
+function getData()
+{
+
+               
+				var Type = "POST";
+				var URL = "http://localhost/getdata.php";
+				var ContentType = "application/json; charset=utf-8";
+				var Data = [
+								
+								{
+									"column" : "id",
+									"value" : "2"
+								}	
+									
+							];
+			
+
+			
+			/////sending oajax request////
+                
+				oajax.request( 
+						Type , 
+						URL , 
+						Data ,
+						ContentType ,
+						function(data){
+								$("#data").val( JSON.stringify(data));
+						});
+						
+						
+}
+  </script>
