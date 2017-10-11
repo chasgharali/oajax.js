@@ -16,23 +16,17 @@ $ bower install oajax.js --save
 ## Usage
 **This library use instead of ajax request in otherword its offline ajax request handler so you can easily replace your ajax request with oajax to make your app works offline perfectly.**
 
-### basic http request method 
+### basic http request method is same as for ajax in jquery
 
 ```javascript
 	
-    var Type = "POST"; 
-    var URL = "http://localhost/getdata.php"; 
-    var ContentType = "application/json; charset=utf-8"; // leave it empty string if you don't use any contentType
-    var Data = [{
-                	"column" : "id",
-                   "value" : "2"
-                  }]; //Main Payload
-
-			/////sending oajax request////
-      oajax.request(Type ,URL ,Data ,ContentType ,
-      	function(data){ // callback function on success or error
-                    $("#data").val( JSON.stringify(data));
-                });
+    $oajax({url: "http://localhost/phonegap/getData.php" ,  success: function(result){
+                      console.log(result);
+	         },
+		 error : function(err){
+			console.log(err);
+		 }
+	});
 ```
 
 
