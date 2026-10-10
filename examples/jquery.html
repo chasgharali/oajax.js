@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>oajax.js example: v1-style $oajax with jQuery</title>
+    <style>
+      body {
+        font: 16px/1.5 system-ui, sans-serif;
+        max-width: 44rem;
+        margin: 0 auto;
+        padding: 1.5rem 1rem;
+      }
+      textarea {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 8rem;
+        font: 13px ui-monospace, monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>v1-style <code>$oajax</code></h1>
+    <p>
+      The same call shape as oajax.js 1.x. Load jQuery first if your app uses it; oajax adds
+      <code>$.oajax</code> and a global <code>$oajax</code>. Turn the network off in DevTools and press the buttons
+      again.
+    </p>
+    <button id="get">GET</button>
+    <button id="post">POST</button>
+    <textarea id="data" aria-label="Result"></textarea>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="../dist/oajax.min.js"></script>
+    <script>
+      // To route every $.ajax / $.get / $.post through oajax, as v1 did:
+      // oajax.installJQuery(jQuery, { patchAjax: true })
+
+      const show = (label, value) => $('#data').val(label + '\n' + JSON.stringify(value, null, 2))
+
+      $('#get').on('click', () => {
+        $oajax({
+          url: 'https://httpbin.org/get',
+          data: { id: 2 },
+          dataType: 'json',
+          success(result, status, xhr) {
+            show(xhr.fromCache ? 'From the cache (offline)' : 'From the network', result)
+          },
+          error(xhr, status) {
+            show('Error', { status, httpStatus: xhr.status })
+          },
+        })
+      })
+
+      $('#post').on('click', () => {
+        $oajax({
+          url: 'https://httpbin.org/post',
+          type: 'POST',
+          contentType: 'application/json; charset=utf-8',
+          data: [{ column: 'id', value: '2' }],
+          success(result) {
+            show('Sent', result)
+          },
+          queued(info) {
+            show('Saved offline, will sync', info)
+          },
+          error(xhr, status) {
+            show('Error', { status, httpStatus: xhr.status })
+          },
+        })
+      })
+
+      oajax.on('replayed', (e) => show('Synced after reconnecting', e.response.data))
+    </script>
+  </body>
+</html>

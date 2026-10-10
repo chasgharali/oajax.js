@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>oajax.js example: offline notes</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #fbfaf7;
+        --fg: #1d1c1a;
+        --muted: #66625b;
+        --line: #d9d5cc;
+        --accent: #1f5f8b;
+        --warn: #8a5a00;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #161513;
+          --fg: #ecebe7;
+          --muted: #a29e95;
+          --line: #3a3833;
+          --accent: #7cb6df;
+          --warn: #e4b45a;
+        }
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font: 16px/1.5 system-ui, sans-serif;
+      }
+      main {
+        max-width: 44rem;
+        margin: 0 auto;
+        padding: 1.5rem 1rem 3rem;
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin: 0 0 0.25rem;
+      }
+      p.lede {
+        color: var(--muted);
+        margin-top: 0;
+      }
+      fieldset {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        margin: 1rem 0;
+        padding: 0.75rem 1rem 1rem;
+      }
+      label {
+        display: block;
+        font-weight: 600;
+        margin: 0.5rem 0 0.25rem;
+      }
+      input[type='text'],
+      input[type='url'] {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+      }
+      button {
+        font: inherit;
+        padding: 0.45rem 0.9rem;
+        border-radius: 6px;
+        border: 1px solid var(--accent);
+        background: var(--accent);
+        color: var(--bg);
+        cursor: pointer;
+        margin: 0.75rem 0.5rem 0 0;
+      }
+      button.secondary {
+        background: transparent;
+        color: var(--accent);
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+      }
+      #status {
+        font-weight: 600;
+      }
+      #status.offline {
+        color: var(--warn);
+      }
+      ol,
+      ul {
+        padding-left: 1.25rem;
+      }
+      #log {
+        font: 13px/1.45 ui-monospace, monospace;
+        color: var(--muted);
+        max-height: 16rem;
+        overflow: auto;
+        overflow-wrap: anywhere;
+      }
+      code {
+        font-size: 0.9em;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Offline notes</h1>
+      <p class="lede">
+        Build first (<code>npm install &amp;&amp; npm run build</code>), then serve the repository root
+        (for example <code>npx serve .</code>) and open <code>/examples/</code>. Tick “Simulate offline”, or use your
+        browser’s DevTools network panel, add a few notes, then go back online and watch them replay in order.
+      </p>
+
+      <fieldset>
+        <legend>Server</legend>
+        <label for="endpoint">Endpoint (any URL that accepts POST and GET)</label>
+        <input id="endpoint" type="url" value="https://httpbin.org/anything" />
+        <div class="row">
+          <label><input id="offline" type="checkbox" /> Simulate offline</label>
+        </div>
+        <p>Connection: <span id="status" role="status">online</span></p>
+      </fieldset>
+
+      <form id="form">
+        <label for="note">New note</label>
+        <input id="note" type="text" autocomplete="off" required />
+        <button type="submit">Save note</button>
+        <button type="button" class="secondary" id="load">Load (GET)</button>
+        <button type="button" class="secondary" id="flush">Sync now</button>
+      </form>
+
+      <h2>Waiting to sync (<span id="count">0</span>)</h2>
+      <ol id="pending"></ol>
+
+      <h2>Gave up (dead letters)</h2>
+      <ul id="dead"></ul>
+      <button type="button" class="secondary" id="retry-dead">Retry dead letters</button>
+
+      <h2>Events</h2>
+      <div id="log" aria-live="polite"></div>
+    </main>
+
+    <script src="../dist/oajax.min.js"></script>
+    <script>
+      const $ = (id) => document.getElementById(id)
+      let simulatedOffline = false
+
+      // A client of our own, so we can plug in "simulate offline".
+      const api = oajax.createOajax({
+        name: 'oajax-example',
+        isOnline: () => !simulatedOffline && navigator.onLine,
+        fetch: (url, init) =>
+          simulatedOffline ? Promise.reject(new TypeError('Failed to fetch (simulated)')) : fetch(url, init),
+        retry: { baseDelay: 2000, maxAttempts: 6 },
+      })
+
+      function log(text) {
+        const line = document.createElement('div')
+        line.textContent = new Date().toLocaleTimeString() + '  ' + text
+        $('log').prepend(line)
+      }
+
+      async function render() {
+        const items = await api.outbox.list()
+        $('count').textContent = items.length
+        $('pending').replaceChildren(
+          ...items.map((i) => {
+            const li = document.createElement('li')
+            li.textContent = `${i.method} ${JSON.parse(i.body || '{}').text ?? ''} (attempts: ${i.attempts})`
+            return li
+          }),
+        )
+        const dead = await api.outbox.dead()
+        $('dead').replaceChildren(
+          ...dead.map((d) => {
+            const li = document.createElement('li')
+            li.textContent = `${d.method} ${d.url}: ${d.reason}${d.status ? ' ' + d.status : ''}`
+            return li
+          }),
+        )
+        const offline = simulatedOffline || !navigator.onLine
+        $('status').textContent = offline ? 'offline: new notes are saved on this device' : 'online'
+        $('status').className = offline ? 'offline' : ''
+      }
+
+      api.on('queued', (e) => (log(`queued ${e.item.id}: saved offline, will sync`), render()))
+      api.on('replayed', (e) => (log(`synced ${e.item.id} (HTTP ${e.response.status})`), render()))
+      api.on('failed', (e) => (log(`retry ${e.item.id} at ${new Date(e.nextAttemptAt).toLocaleTimeString()}`), render()))
+      api.on('dead', (e) => (log(`gave up on ${e.item.id}: ${e.item.reason}`), render()))
+      api.on('drained', (e) => log(`all caught up (${e.replayed} sent)`))
+
+      $('form').addEventListener('submit', async (event) => {
+        event.preventDefault()
+        const text = $('note').value.trim()
+        if (!text) return
+        $('note').value = ''
+        try {
+          const r = await api({ url: $('endpoint').value, method: 'POST', body: { text, at: Date.now() } })
+          if (!r.queued) log(`sent at once (HTTP ${r.status})`)
+        } catch (err) {
+          log(`failed: ${err.message}`)
+        }
+        render()
+      })
+
+      $('load').addEventListener('click', async () => {
+        try {
+          const r = await api({ url: $('endpoint').value, params: { list: 'notes' } })
+          log(r.fromCache ? 'GET answered from the cache (offline)' : `GET from the network (HTTP ${r.status})`)
+        } catch (err) {
+          log(`GET failed: ${err.message}`)
+        }
+      })
+
+      $('flush').addEventListener('click', async () => {
+        const r = await api.flush()
+        log(`flush: ${r.replayed} sent, ${r.failed} failed, ${r.dead} dead, ${r.pending} waiting`)
+        render()
+      })
+
+      $('retry-dead').addEventListener('click', async () => {
+        log(`moved ${await api.outbox.retryDead()} back to the outbox`)
+        render()
+      })
+
+      $('offline').addEventListener('change', (event) => {
+        simulatedOffline = event.target.checked
+        // oajax replays on the browser's 'online' event; fire one for the simulation.
+        if (!simulatedOffline) window.dispatchEvent(new Event('online'))
+        render()
+      })
+      addEventListener('online', render)
+      addEventListener('offline', render)
+      render()
+    </script>
+  </body>
+</html>

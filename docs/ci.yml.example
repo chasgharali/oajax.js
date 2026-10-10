@@ -1,0 +1,27 @@
+# Copy to .github/workflows/ci.yml to run the checks on every push and PR.
+# (Kept here because the token used to push this repository cannot write workflows.)
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [22, 24] # the dev tools (vitest 5, jsdom 30) need Node 22+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm run lint:package
+      - run: npm pack --dry-run
