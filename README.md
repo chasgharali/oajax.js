@@ -247,7 +247,7 @@ The returned object is promise-like with `done`, `fail`, `always`, `then` and `c
 
 - **52 unit tests** (vitest, jsdom, a fake `fetch`, `fake-indexeddb`): offline reads fall back to the cache; TTL and size limits; cache keys; timeouts and aborts; queued writes replay in order on the `online` event; a failure stops the batch; exponential backoff on fake timers and the dead-letter list; the idempotency key is the same on the first attempt and every retry; `prepareReplay`; persistence across a simulated reload with the memory, localStorage and IndexedDB adapters; the jQuery adapter calls `error` (not `success`) on failure and reports queued writes; server-side import without browser globals; the script-tag entry.
 - The built bundles were checked by loading the CommonJS build in Node and the script-tag build in a jsdom window.
-- **Not yet tested in a real browser.** Nothing has been run in Chrome, Firefox or Safari, in a Cordova or Capacitor WebView, or with real IndexedDB, real `online` / `offline` events or Web Locks (jsdom has none of the last). The examples in [`examples/`](examples) are there for that; reports are welcome.
+- **Real browsers: smoke-tested only.** `scripts/browser-smoke.mjs` runs the script-tag build in headless **Chromium and WebKit** (Playwright, 2026-10-10): a cached read is served offline, two writes made offline are queued, survive a page reload, and replay in order with their idempotency keys once the network is back. Firefox, real devices, and Cordova / Capacitor WebViews are not tested yet; the examples in [`examples/`](examples) are there for that, and reports are welcome.
 - Not tested on Node 18 or 20: the package targets ES2020 and should run there, but the dev tools need Node 22+.
 
 ## Example
